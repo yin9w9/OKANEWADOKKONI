@@ -1,4 +1,4 @@
-import {currencies,roundMoney,isCredit,balanceOf,cardStatement,tripTotals,settlementPlan} from './finance.js';
+import {currencies,roundMoney,isCredit,balanceOf,cardStatement,tripTotals,settlementPlan} from './finance.js?v=6';
 
 export function setupFeatures(ctx){
  const {$,getState,getMonth,persist,atomicTrip,render,money,esc,today,options,toast,view,entryDialog}=ctx;
@@ -21,7 +21,7 @@ export function setupFeatures(ctx){
  $('#account-form').onsubmit=async event=>{event.preventDefault();try{mustReady();const id=crypto.randomUUID();await persist('accounts',id,accountValues(event.target,id));event.target.reset();cardFields(event.target,'#new-card-days');toast('帳戶已新增')}catch(e){toast(e.message)}};
  function editAccount(id){const a=state().accounts.find(x=>x.id===id);if(!a)return;const f=$('#edit-account-form');f.reset();for(const key of ['id','name','opening'])f.elements[key].value=a[key];f.elements.type.value=isCredit(a)?'credit':'asset';f.elements.closingDay.value=a.closingDay||'';f.elements.dueDay.value=a.dueDay||'';cardFields(f,'#edit-card-days');show('#account-dialog')}
  $('#edit-account-form').onsubmit=async event=>{event.preventDefault();try{mustReady();const id=event.target.elements.id.value,old=state().accounts.find(a=>a.id===id);await persist('accounts',id,{...old,...accountValues(event.target,id)});close('#account-dialog');toast('帳戶已更新')}catch(e){toast(e.message)}};
- function payCard(id){entryDialog();const f=$('#entry-form');f.elements.type.value='payment';f.dispatchEvent(new Event('change',{bubbles:true}));f.elements.to.value=id;f.elements.note.value='信用卡繳款';f.elements.date.value=today()}
+ function payCard(id){entryDialog();const f=$('#entry-form');f.elements.type.value='payment';f.dispatchEvent(new Event('change',{bubbles:true}));f.elements.account.value=state().accounts.find(a=>!isCredit(a))?.id||'';f.elements.to.value=id;f.elements.note.value='信用卡繳款';f.elements.date.value=today()}
  function openTrip(id){activeTrip=id;renderTrips()}
  function tripDialog(id){mustReady();const t=tripById(id),f=$('#trip-form');if(t?.settled)throw Error('已結算旅程不能變更期間與匯率，可調整結算金額');f.reset();f.elements.id.value=t?.id||'';f.elements.name.value=t?.name||'';f.elements.start.value=t?.start||today();f.elements.end.value=t?.end||today();$('#trip-rates').innerHTML=Object.entries(currencies).filter(([c])=>c!=='TWD').map(([c,n])=>`<label>${esc(n)} · ${c}<input name="rate-${c}" type="number" min="0.000001" step="0.000001" value="${t?.rates?.[c]||''}" placeholder="使用時再填"></label>`).join('');show('#trip-dialog')}
  $('#new-trip').onclick=()=>{try{tripDialog()}catch(e){toast(e.message)}};

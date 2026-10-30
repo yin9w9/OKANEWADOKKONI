@@ -1,6 +1,18 @@
 export const currencies = {TWD:'台幣',JPY:'日圓',KRW:'韓元',USD:'美元',EUR:'歐元',GBP:'英鎊',AUD:'澳幣'};
 export const roundMoney = n => Math.round((Number(n)+Number.EPSILON)*100)/100;
 export const isCredit = a => !!a && (a.type === 'credit' || (!a.type && (a.id === 'credit' || a.name.includes('信用卡'))));
+export function entryAccountChoices(accounts,type){
+ const assets=accounts.filter(a=>!isCredit(a));
+ return {from:type==='transfer'||type==='payment'?assets:accounts,to:type==='payment'?accounts.filter(isCredit):type==='transfer'?assets:accounts};
+}
+export function validateEntryAccounts(accounts,type,fromId,toId){
+ const choices=entryAccountChoices(accounts,type);
+ if(!choices.from.some(a=>a.id===fromId))throw Error(type==='transfer'?'轉出帳戶只能選現金或銀行':'請選擇可用的付款帳戶');
+ if(type==='transfer'||type==='payment'){
+  if(!choices.to.some(a=>a.id===toId))throw Error(type==='transfer'?'轉入帳戶只能選現金或銀行':'請選擇要繳款的信用卡');
+  if(fromId===toId)throw Error('轉出與轉入帳戶不能相同');
+ }
+}
 export const balanceOf = (a, entries) => roundMoney(entries.reduce((sum,e)=>sum+(e.account===a.id?(e.type==='income'?e.amount:-e.amount):0)+(e.type==='transfer'&&e.to===a.id?e.amount:0),Number(a.opening)||0));
 export function dateAt(year,month,day){const d=new Date(year,month,Math.min(day,new Date(year,month+1,0).getDate()),12);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 export function cardStatement(card,entries,month,today){

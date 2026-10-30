@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {balanceOf,cardStatement,dateAt,tripTotals,settlementPlan,isCredit} from './finance.js';
+import {balanceOf,cardStatement,dateAt,tripTotals,settlementPlan,isCredit,entryAccountChoices,validateEntryAccounts} from './finance.js';
 test('credit card payment cancels liability without adding expense',()=>{
  const card={id:'card',type:'credit',name:'信用卡',opening:0};
  const entries=[{type:'expense',account:'card',amount:1000,date:'2026-10-05'},{type:'transfer',account:'bank',to:'card',amount:600,date:'2026-10-20'}];
@@ -30,4 +30,18 @@ test('two-card settlement and repeated actual-amount edits replace same records'
  assert.throws(()=>settlementPlan(t,{a:1},'2026-10-29',accounts));
  assert.throws(()=>settlementPlan(t,{a:1,b:-1},'2026-10-29',accounts));
  assert.throws(()=>settlementPlan(t,{a:1,b:2},'2026-10-04',accounts));
+});
+
+test('ordinary transfers contain only cash/bank accounts, card payments remain separate',()=>{
+ const accounts=[{id:'card',type:'credit',name:'卡'},{id:'cash',type:'asset',name:'現金'},{id:'bank',type:'asset',name:'銀行'},{id:'credit',name:'信用卡'}];
+ const transfer=entryAccountChoices(accounts,'transfer');
+ assert.deepEqual(transfer.from.map(a=>a.id),['cash','bank']);assert.deepEqual(transfer.to.map(a=>a.id),['cash','bank']);
+ assert.doesNotThrow(()=>validateEntryAccounts(accounts,'transfer','cash','bank'));
+ assert.throws(()=>validateEntryAccounts(accounts,'transfer','cash','card'));
+ assert.throws(()=>validateEntryAccounts(accounts,'transfer','card','bank'));
+ assert.throws(()=>validateEntryAccounts(accounts,'transfer','cash','cash'));
+ const payment=entryAccountChoices(accounts,'payment');assert.deepEqual(payment.to.map(a=>a.id),['card','credit']);
+ assert.doesNotThrow(()=>validateEntryAccounts(accounts,'payment','bank','card'));
+ assert.throws(()=>validateEntryAccounts(accounts,'payment','bank','cash'));
+ assert.equal(entryAccountChoices(accounts,'expense').from.length,4);
 });
