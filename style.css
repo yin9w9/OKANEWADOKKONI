@@ -37,3 +37,16 @@ body{background:var(--bg);font-size:14px}aside{background:#e9e1d6;border-color:#
   #toast{bottom:calc(142px + env(safe-area-inset-bottom,0px))}
 }
 @media(max-width:360px){nav button,nav .nav-label{font-size:13px}nav button{gap:5px}}
+
+/* Account ordering: touch/pen long press, mouse drag and keyboard arrows. */
+#account-list .account-row{position:relative;padding-left:64px!important;min-height:90px}
+#account-list button.account-drag-handle{position:absolute;left:10px;top:12px;bottom:12px;display:flex;align-items:center;justify-content:center;width:40px;min-height:52px;padding:0;border:1px solid #c6d3da;border-radius:8px;background:#e8eef2;color:#587587;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.account-drag-handle svg{width:24px;height:24px;pointer-events:none}
+#account-list button.account-drag-handle:hover{background:#dae5eb}
+#account-list button.account-drag-handle:focus-visible{outline:3px solid #87a8bc;outline-offset:2px}
+#account-list .account-sort-placeholder{opacity:.28;border:2px dashed #607e90!important;background:#e8eef2}
+.account-dragging,.account-dragging *{cursor:grabbing!important;user-select:none!important;-webkit-user-select:none!important}
+.account-drag-ghost{position:fixed!important;z-index:1000;pointer-events:none;padding:18px 14px 18px 64px!important;border:2px solid #607e90!important;border-radius:10px;background:#fffdfa!important;box-shadow:0 10px 30px #334b5840;display:grid!important;grid-template-columns:1fr auto auto auto;gap:8px;opacity:.96}
+.account-drag-ghost .name{grid-column:1/-1}.account-drag-ghost strong{font-size:22px;margin-left:0}.account-drag-ghost>button:not(.account-drag-handle){padding:6px 8px;font-size:10px}.account-drag-ghost .account-drag-handle{position:absolute;left:10px;top:12px;bottom:12px;width:40px;display:grid;place-items:center;padding:0;background:#e8eef2;color:#587587;border-color:#c6d3da}
+.account-order-status{font-size:11px;line-height:1.8;color:#526f82;min-height:20px;margin:10px 0}
+@media(max-width:760px){#account-list .account-row{padding-left:62px!important}#account-list .account-row>strong{grid-column:1/-1;justify-self:start}.account-drag-ghost>strong{grid-column:1/-1}.account-drag-ghost{grid-template-columns:1fr auto auto auto;padding-left:62px!important}#account-order-help{font-size:11px}#account-list button.account-drag-handle{left:8px;width:40px}}

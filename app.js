@@ -1,3 +1,4 @@
+import {accountOrder,orderedAccounts,setupAccountSorting} from './account-order.js';
 import { setupCloud } from './cloud.js';
 import { isCredit, balanceOf } from './finance.js';
 import { setupFeatures } from './features.js';
@@ -10,7 +11,7 @@ const defaults = () => ({entries:[],accounts:[{id:'cash',name:'現金',type:'ass
 let local;try{local=JSON.parse(localStorage.getItem('komorebi-local'))||defaults()}catch{local=defaults()}
 local.trips ||= [];
 let state=structuredClone(local),user=null,cloud=null,ready=false,unsubscribe=null;
-let features;
+let features,accountSorter;
 let selectedMonth=today().slice(0,7),currentView='overview';
 let timer;function toast(message){$('#toast').textContent=message;$('#toast').style.display='block';clearTimeout(timer);timer=setTimeout(()=>$('#toast').style.display='none',4500)}
 function status(s){$('#sync-status').textContent=s}
@@ -26,14 +27,16 @@ function sorted(es){return [...es].sort((a,b)=>b.date.localeCompare(a.date)||(b.
 function rows(es){return es.length?sorted(es).map(e=>{const c=cat(e.category);return `<button class="entry" data-edit="${esc(e.id)}"><span class="entry-icon" style="background:${c.color}33;color:${c.color}">${esc(e.type==='transfer'?'⇄':c.icon)}</span><span class="entry-info"><strong>${esc(e.note||(e.type==='transfer'?'帳戶轉帳':c.name))}</strong><small>${esc(e.type==='transfer'?(isCredit(state.accounts.find(a=>a.id===e.to))?'繳卡費 · ':'')+account(e.account)+' → '+account(e.to):c.name+' · '+account(e.account))}</small></span><span class="entry-amount ${e.type==='income'?'positive':e.type==='expense'?'negative':''}">${e.type==='income'?'+':e.type==='expense'?'−':''}${money(e.amount)}<small>${esc(e.date)}</small></span></button>`}).join(''):'<div class="empty">沒有符合條件的紀錄<span>調整篩選條件，或點選「＋ 記一筆」新增紀錄。</span></div>'}
 function options(items,value){return items.map(x=>`<option value="${esc(x.id)}" ${x.id===value?'selected':''}>${esc(x.name)}</option>`).join('')}
 function render(){
+ state.accounts=orderedAccounts(state.accounts,state.budgets._accountOrder?.ids);
  $('#month').value=selectedMonth;const {income,expense}=totals();$('#income').textContent=money(income);$('#expense').textContent=money(expense);$('#balance').textContent=money(income-expense);
  const budget=state.budgets[selectedMonth]||{};const total=Number(budget.total)||0;$('#budget-left').textContent=total?money(total-expense):'尚未設定';$('#budget-description').textContent=total?(expense>total?'已超出本月預算':'本月總預算扣除已記錄支出'):'尚未設定本月總預算';$('#budget-used').textContent=total?`${Math.round(expense/total*100)}%`:'—';$('#budget-progress').style.width=total?`${Math.min(100,expense/total*100)}%`:'0%';$('#budget-progress').style.background=expense>total&&total?'#ac7967':'#7895a5';$('#budget-total').textContent=`預算 ${money(total)}`;
  const grouped={};monthly().filter(e=>e.type==='expense').forEach(e=>grouped[e.category]=(grouped[e.category]||0)+e.amount);let cursor=0;const slices=Object.entries(grouped).sort((a,b)=>b[1]-a[1]);const gradient=slices.map(([id,n])=>{const from=cursor;cursor+=n/expense*100;return `${cat(id).color} ${from}% ${cursor}%`}).join(',');$('#chart-content').innerHTML=slices.length?`<div class="chart-layout"><div class="donut" role="img" aria-label="支出分類圓環圖" style="background:conic-gradient(${gradient})"><div class="donut-center">本月總支出<strong>${money(expense)}</strong></div></div><div class="legend">${slices.map(([id,n])=>`<div class="legend-row"><i style="background:${cat(id).color}"></i>${esc(cat(id).name)}<strong>${money(n)}</strong><small>${Math.round(n/expense*100)}%</small></div>`).join('')}</div></div>`:'<div class="chart-layout"><div class="donut" style="background:#e4eaf0"><div class="donut-center">本月總支出<strong>$0</strong></div></div><p class="muted">本月尚無支出紀錄。<br>新增支出後顯示分類比例。</p></div>';
  $('#recent').innerHTML=rows(sorted(monthly()).slice(0,5));
  for(const [selector,items,label] of [['#filter-category',state.categories,'所有分類'],['#filter-account',state.accounts,'所有帳戶']]){const v=$(selector).value;$(selector).innerHTML=`<option value="">${label}</option>`+options(items,v)}renderRecords();
  $('#budget-form [name=total]').value=total||'';$('#category-budgets').innerHTML=state.categories.map(c=>{const used=grouped[c.id]||0;const limit=Number(budget[c.id])||0;return `<label>${esc(c.icon+' '+c.name)} <span class="muted">已用 ${money(used)}${limit?' ／ 剩餘 '+money(limit-used):''}</span><input name="${esc(c.id)}" type="number" min="0" step="1" value="${limit||''}" placeholder="不設限"></label>`}).join('');
- $('#account-list').innerHTML=state.accounts.map(a=>{const balance=balanceOf(a,state.entries),credit=isCredit(a);return `<div class="manage-row"><span class="name">${esc(a.name)}<small class="account-meta">${credit?('信用卡 · '+(a.closingDay?'結帳 '+a.closingDay+' 日 / 繳款 '+a.dueDay+' 日':'尚未設定帳單日期')):'現金／銀行'}${credit?(balance<=0?' · 未繳欠款':' · 溢繳餘額'):''}</small></span><strong>${money(credit?Math.abs(balance):balance)}</strong>${credit?`<button data-pay-card="${esc(a.id)}">繳卡費</button>`:''}<button data-rename-account="${esc(a.id)}">編輯</button><button data-delete-account="${esc(a.id)}">刪除</button></div>`}).join('');
+ if(!accountSorter?.busy)$('#account-list').innerHTML=state.accounts.map(a=>{const balance=balanceOf(a,state.entries),credit=isCredit(a);return `<div class="manage-row account-row" data-account-row="${esc(a.id)}"><button type="button" class="account-drag-handle" data-drag-account="${esc(a.id)}" aria-label="拖曳調整 ${esc(a.name)} 的順序" aria-describedby="account-order-help" title="按住拖曳；也可用上下方向鍵"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><circle cx="9" cy="5" r="1.7"/><circle cx="15" cy="5" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="19" r="1.7"/><circle cx="15" cy="19" r="1.7"/></svg></button><span class="name">${esc(a.name)}<small class="account-meta">${credit?('信用卡 · '+(a.closingDay?'結帳 '+a.closingDay+' 日 / 繳款 '+a.dueDay+' 日':'尚未設定帳單日期')):'現金／銀行'}${credit?(balance<=0?' · 未繳欠款':' · 溢繳餘額'):''}</small></span><strong>${money(credit?Math.abs(balance):balance)}</strong>${credit?`<button data-pay-card="${esc(a.id)}">繳卡費</button>`:''}<button data-rename-account="${esc(a.id)}">編輯</button><button data-delete-account="${esc(a.id)}">刪除</button></div>`}).join('');
  renderPageDetails(grouped,budget);
+ refreshAccountMenus();
  features?.render();
  $('#category-list').innerHTML=state.categories.map(c=>`<div class="manage-row"><i class="mini-color" style="background:${c.color}"></i><span class="name">${esc(c.icon+' '+c.name)}</span><button data-rename-category="${esc(c.id)}">編輯</button><button data-delete-category="${esc(c.id)}">刪除</button></div>`).join('');
 }
@@ -75,6 +78,14 @@ async function atomicTrip(id,transform){
 }
 const cloudController=setupCloud({$,status,toast,render,esc,defaults,getLocal:()=>local,getData:()=>state,setData:value=>{state=value},setUser:value=>{user=value},setReady:value=>{ready=value},setCloud:value=>{cloud=value},getConfig:()=>{const value=localStorage.getItem('komorebi-firebase');return value?JSON.parse(value):firebaseConfig}});
 features=setupFeatures({$:s=>$(s),getState:()=>state,getMonth:()=>selectedMonth,getUser:()=>user,isReady:()=>!user||ready,persist,atomicTrip,render,money,esc,today,options,toast,view,entryDialog});
+
+
+function refreshAccountMenus(){
+ const update=(select,items)=>{const value=select.value;const before=[...select.options].map(o=>o.value+'|'+o.textContent).join('\n');const after=items.map(a=>a.id+'|'+a.name).join('\n');if(before!==after)select.innerHTML=options(items,value)};
+ if($('#entry-dialog').open){const f=$('#entry-form'),payment=f.elements.type.value==='payment';update(f.elements.account,payment?state.accounts.filter(a=>!isCredit(a)):state.accounts);update(f.elements.to,payment?state.accounts.filter(isCredit):state.accounts)}
+ if($('#trip-entry-dialog').open)update($('#trip-entry-form').elements.account,state.accounts);
+}
+accountSorter=setupAccountSorting({container:$('#account-list'),canSort:()=>!user||ready,render,announce:message=>{$('#account-order-status').textContent=message},save:async ids=>{if(user&&!ready)throw Error('雲端尚未就緒');const value={ids:accountOrder(state.accounts,ids),updatedAt:Date.now()};await persist('budgets','_accountOrder',value);state.budgets._accountOrder=value}});
 
 window.addEventListener('load',()=>window.scrollTo({top:0,behavior:'instant'}));
 window.addEventListener('hashchange',()=>view(location.hash.slice(1)));view(location.hash.slice(1)||'overview');render();status('本機模式');if(localStorage.getItem('okane-cloud-enabled')==='1')cloudController.initialize().catch(()=>{});
