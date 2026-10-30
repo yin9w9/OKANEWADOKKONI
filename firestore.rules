@@ -1,10 +1,30 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isOwner() {
+      return request.auth != null && request.auth.uid == 'Wd2zH6GVxphMtPD0Z6nld5VfF872';
+    }
+    function hasVerifiedEmail() {
+      return request.auth != null && request.auth.token.email_verified == true
+        && request.auth.token.email is string;
+    }
+    function approved() {
+      return isOwner() || (hasVerifiedEmail()
+        && exists(/databases/$(database)/documents/cloudAccess/$(request.auth.token.email.lower()))
+        && get(/databases/$(database)/documents/cloudAccess/$(request.auth.token.email.lower())).data.enabled == true);
+    }
+    match /cloudAccess/{email} {
+      allow get: if isOwner() || (hasVerifiedEmail() && email == request.auth.token.email.lower());
+      allow list: if isOwner();
+      allow create, update: if isOwner()
+        && request.resource.data.keys().hasOnly(['enabled', 'updatedAt'])
+        && request.resource.data.enabled is bool
+        && request.resource.data.updatedAt is int;
+    }
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if approved() && request.auth.uid == uid;
       match /{collection}/{document} {
-        allow read, write: if request.auth != null && request.auth.uid == uid
+        allow read, write: if approved() && request.auth.uid == uid
           && collection in ['entries', 'accounts', 'categories', 'budgets', 'trips'];
       }
     }
