@@ -1,11 +1,5 @@
 # お金はどこに
 
-正式網站：https://yin9w9.github.io/OKANEWADOKKONI/
-
-原始碼：https://github.com/yin9w9/OKANEWADOKKONI
-
-日系莫蘭迪色個人記帳網頁，繁體中文、TWD、響應式設計。純 HTML/CSS/JavaScript，無須編譯。
-
 ## 第一版功能
 
 - 收入、支出、帳戶轉帳；新增、編輯、刪除。
