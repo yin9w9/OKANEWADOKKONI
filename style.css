@@ -18,3 +18,22 @@ body{background:var(--bg);font-size:14px}aside{background:#e9e1d6;border-color:#
 @media(max-width:760px){nav button{font-size:9px}nav .nav-icon{font-size:16px}nav .nav-label{letter-spacing:-.3px}.trips-layout{grid-template-columns:1fr}#trip-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.trip-card{padding:14px}.trip-card>strong{font-size:13px;overflow-wrap:anywhere}.trip-card>span:not(.badge){font-size:9px}.trip-summary>strong{font-size:27px}#trips>.section-heading{align-items:flex-start}#trips>.section-heading .primary{font-size:11px;white-space:nowrap;padding:10px 13px}#trips .section-heading .muted{font-size:10px}.trip-actions button{padding:10px;font-size:11px}#card-reminders{grid-template-columns:1fr}.reminder{display:grid;grid-template-columns:1fr auto;gap:4px 10px}.reminder>div{grid-column:1/-1}.reminder>p{grid-row:2/4;font-size:11px}.reminder>.reminder-amount{grid-column:2;align-self:end;font-size:23px;text-align:right}.reminder>small{grid-column:2;text-align:right;font-size:9px;margin:3px 0 10px}.reminder>button{grid-column:1/-1;justify-self:start}.account-meta{font-size:9px!important}#account-list .manage-row{grid-template-columns:1fr auto auto auto}#account-list strong{font-size:21px}#account-list button{font-size:10px;padding:6px}.source-chips{grid-template-columns:1fr}.type-tabs{gap:2px}.type-tabs label{padding:9px 7px}.rates-grid{gap:0 12px}}
 /* Owner access management */
 .grant-row{display:flex;align-items:center;justify-content:space-between;gap:14px;border-top:1px solid var(--line);padding:16px 0}.grant-row>div{min-width:0}.grant-row strong{display:block;font-size:12px;font-weight:500;overflow-wrap:anywhere}.grant-row small{display:block;font-size:10px;color:var(--muted);margin:6px 0 0;letter-spacing:0}.grant-row button{white-space:nowrap;font-size:11px;padding:8px 12px}#cloud-access-panel{align-self:start}#cloud-access-note{line-height:1.9}#cloud-access-form{margin:20px 0}#cloud-access-form label{font-size:12px}
+
+/* Mobile navigation: six large targets, three columns and two rows. */
+.nav-icon{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}.nav-icon svg{display:block;width:21px;height:21px;flex-shrink:0}
+@media(max-width:760px){
+  aside{height:auto;padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));background:#f6f3ed;border-top:1px solid #c9c1b5;box-shadow:0 -4px 20px #334b5812}
+  nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%;height:auto}
+  nav button{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:52px;margin:0;padding:8px 6px;border:1px solid #d8d3c9;border-radius:10px;background:#fffdfa;color:#435b69;font-size:14px;font-weight:600;line-height:1.3;touch-action:manipulation}
+  nav .nav-icon{width:20px;font-size:20px;line-height:1;flex-shrink:0}
+  nav .nav-icon svg{width:20px;height:20px}
+  nav .nav-label{font-size:14px;letter-spacing:0;line-height:1.3;white-space:nowrap}
+  nav button.active,nav button[aria-current="page"]{background:#466779;color:#fff;border-color:#466779;box-shadow:0 2px 6px #334b5820}
+  nav button:hover{background:#e9eff2}
+  nav button.active:hover{background:#3d5e70}
+  nav button:active{transform:scale(.97)}
+  nav button:focus-visible{outline:3px solid #8cacc0;outline-offset:1px}
+  main{padding-bottom:calc(158px + env(safe-area-inset-bottom,0px))}
+  #toast{bottom:calc(142px + env(safe-area-inset-bottom,0px))}
+}
+@media(max-width:360px){nav button,nav .nav-label{font-size:13px}nav button{gap:5px}}
